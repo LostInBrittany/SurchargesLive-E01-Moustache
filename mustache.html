@@ -169,8 +169,9 @@ async function getUserMedia() {
   draw();
 }
 
+let stateFaceDetect = 0; //>0 means face detect <0 means face was not detect (if stateFaceDetect is below 10 => we really don't have face to draw)
+
 async function draw() {
-  requestAnimationFrame(draw);
 
   const context = canvas.getContext('2d');
 
@@ -178,7 +179,7 @@ async function draw() {
   const ratio  = Math.max(canvas.width / video.videoWidth, canvas.height / video.videoHeight);
   context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight,
       (canvas.width - video.videoWidth * ratio) / 2, 0,
-      video.videoWidth * ratio, video.videoHeight * ratio);  
+      video.videoWidth * ratio, video.videoHeight * ratio);
 
   // Draw mustache and hat on previously detected face.
   if (faces.length) {
@@ -210,15 +211,24 @@ async function draw() {
     }
   }
 
-  if (isDetectingFaces) {
-    return;
+  if (!isDetectingFaces) {
+    // Detect faces.
+    console.count('Detecting faces');
+    isDetectingFaces = true;
+    let facesTemp = await faceDetector.detect(canvas);
+    const incrementStateFace =  facesTemp.length > 0 ? 1 : -1;
+    if (incrementStateFace === 1){
+      stateFaceDetect = 1;
+    }else{
+      stateFaceDetect = stateFaceDetect > 0 ? -1 : stateFaceDetect - 1;
+    }
+    if (stateFaceDetect < -10 || stateFaceDetect > 0){
+      faces = facesTemp;
+    }
+    isDetectingFaces = false;
   }
+  requestAnimationFrame(draw);
 
-  // Detect faces.
-  console.count('Detecting faces');
-  isDetectingFaces = true;
-  faces = await faceDetector.detect(canvas);
-  isDetectingFaces = false;
 }
 
 function startRecording() {
@@ -275,7 +285,7 @@ async function uploadVideo(blob) {
 
   // Upload video to Google Cloud Storage.
   const response = await fetch(url, {
-    method: 'POST', 
+    method: 'POST',
     body: blob,
     headers: new Headers({
       'Content-Type': 'video/webm',
