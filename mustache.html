@@ -144,6 +144,8 @@ let isDetectingFaces = false;
 
 let easterEgg = false;
 let showFace = false;
+let context = undefined;
+let ratio = 0;
 
 async function getUserMedia() {
   // Grab camera stream.
@@ -166,21 +168,35 @@ async function getUserMedia() {
   }
 
   setTimeout(_ => { faces = []; }, 500);
+
+  context = canvas.getContext('2d');
+  ratio = Math.max(canvas.width / video.videoWidth, canvas.height / video.videoHeight);
+
   draw();
 }
 
 let stateFaceDetect = 0; //>0 means face detect <0 means face was not detect (if stateFaceDetect is below 10 => we really don't have face to draw)
 
 async function draw() {
+  requestAnimationFrame(draw);
 
-  const context = canvas.getContext('2d');
+  //const context = canvas.getContext('2d');
 
   // Draw video frame.
-  const ratio  = Math.max(canvas.width / video.videoWidth, canvas.height / video.videoHeight);
+  //const ratio  = Math.max(canvas.width / video.videoWidth, canvas.height / video.videoHeight);
   context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight,
       (canvas.width - video.videoWidth * ratio) / 2, 0,
       video.videoWidth * ratio, video.videoHeight * ratio);
 
+  if (!isDetectingFaces) {
+    // Detect faces.
+    console.count('Detecting faces');
+    isDetectingFaces = true;
+    faceDetector.detect(canvas).then((facesArray => {
+      faces = facesArray;
+      isDetectingFaces = false;
+    }));
+  }
   // Draw mustache and hat on previously detected face.
   if (faces.length) {
     const face = faces[0].boundingBox;
@@ -211,23 +227,6 @@ async function draw() {
     }
   }
 
-  if (!isDetectingFaces) {
-    // Detect faces.
-    console.count('Detecting faces');
-    isDetectingFaces = true;
-    let facesTemp = await faceDetector.detect(canvas);
-    const incrementStateFace =  facesTemp.length > 0 ? 1 : -1;
-    if (incrementStateFace === 1){
-      stateFaceDetect = 1;
-    }else{
-      stateFaceDetect = stateFaceDetect > 0 ? -1 : stateFaceDetect - 1;
-    }
-    if (stateFaceDetect < -10 || stateFaceDetect > 0){
-      faces = facesTemp;
-    }
-    isDetectingFaces = false;
-  }
-  requestAnimationFrame(draw);
 
 }
 
