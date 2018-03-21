@@ -180,10 +180,7 @@ let stateFaceDetect = 0; //>0 means face detect <0 means face was not detect (if
 async function draw() {
   requestAnimationFrame(draw);
 
-  //const context = canvas.getContext('2d');
-
   // Draw video frame.
-  //const ratio  = Math.max(canvas.width / video.videoWidth, canvas.height / video.videoHeight);
   context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight,
       (canvas.width - video.videoWidth * ratio) / 2, 0,
       video.videoWidth * ratio, video.videoHeight * ratio);
