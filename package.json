@@ -1,0 +1,38 @@
+{
+  "name": "mustache-surcharged",
+  "version": "1.0.0",
+  "description": "Basic application for supercharged live sesssion in french",
+  "main": "index.html",
+  "scripts": {
+    "start": "http-server -p 8080"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LostInBrittany/surcharges-moustache.git"
+  },
+  "keywords": [
+    "webcomponent",
+    "mask",
+    "code",
+    "highlight"
+  ],
+  "contributors":[
+    {
+    "name": "jefBinomed",
+    "url": "https://github.com/jefbinomed"
+    },
+    {
+    "name": "LostInBritany",
+    "url": "https://github.com/LostInBritany"
+    }
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/LostInBrittany/surcharges-moustache/issues"
+  },
+  "homepage": "https://github.com/LostInBrittany/surcharges-moustache#readme",
+  "dependencies": {
+    "lit-html": "^0.9.0",
+    "http-server": "latest"
+  }
+}
