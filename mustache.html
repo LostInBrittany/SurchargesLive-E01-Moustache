@@ -1,0 +1,342 @@
+<meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=no">
+<link rel="manifest" href="mustache.json">
+<title>Mustache</title>
+<style>
+  html, body {
+    margin: 0 auto;
+    height: 100%;
+    background: rgb(51, 51, 58);
+    color: #fff;
+    user-select: none;
+    overflow: hidden;
+  }
+  video {
+    display: none;
+  }
+  canvas {
+    background: rgb(51, 51, 58);
+    width: 100vw;
+    height: 100vh;
+  }
+  pre {
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    white-space: pre-line;
+    right: 24px;
+    text-shadow: 0 0 black;
+   }
+  #mustache, #hat, #sunglasses {
+    display: none;
+  }
+  .bottomBar {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    height: 128px;
+    background-color: rgba(51, 51, 58, 0.3);
+  }
+  .recording .bottomBar {
+    opacity: 0;
+  }
+  #recordButton {
+    will-change: transform, background;
+    transition: transform .1s ease-out;
+    position: absolute;
+    bottom: 24px;
+    right: 0;
+    text-align: center;
+    left: 0;
+    width: 10px;
+    margin: auto;
+    background: rgb(0, 193, 233);
+    line-height: 64px;
+    border-radius: 50%;
+    box-shadow: 0 0 2px 0 rgb(51, 51, 58);
+    height: 10px;
+    border: 36px solid rgb(7, 104, 125);
+  }
+  .recording #recordButton {
+    background: red;
+    border-color: red;
+  }
+  #preview {
+    transform: translateX(120px);
+    will-change: transform;
+    transition: .1s transform ease-in;
+  }
+  #previewVideo {
+    width: 92px;
+    position: absolute;
+    bottom: 72px;
+    right: 24px;
+    background: black;
+    display: block;
+    border: 2px solid #F44336;
+    border-bottom: 0;
+  }
+  #shareButton {
+    position: absolute;
+    bottom: 70px;
+    right: 24px;
+    text-align: center;
+    width: 96px;
+    background: #F44336;
+    line-height: 48px;
+    font-family: Roboto;
+    font-weight: bold;
+    cursor: default;
+    will-change: transform;
+    transition: .1s transform ease-in;
+  }
+  #shareButton[data-url] {
+    transform: translateY(46px);
+  }
+  .visible {
+    transform: translateX(0) !important;
+  }
+  #switchCameraButton {
+    position: absolute;
+    bottom: 36px;
+    text-align: center;
+    left: 24px;
+    width: 48px;
+    background: rgb(252, 194, 27);
+    line-height: 48px;
+    border-radius: 50%;
+    box-shadow: 0 0 2px 0 rgb(51, 51, 58);
+    height: 48px;
+    font-size: 24px;
+    cursor: default;
+  }
+</style>
+<canvas id="canvas"></canvas>
+<video id="video" autoplay muted></video>
+<div class="bottomBar"></div>
+<img id="mustache">
+<img id="hat">
+<img id="sunglasses">
+<div id="recordButton"></div>
+<div id="switchCameraButton">&#x1f60e;</div>
+<div id="preview">
+  <div id="shareButton">SHARE</div>
+  <video id="previewVideo" autoplay muted loop></video>
+</div>
+<pre id="log"></pre>
+<script>
+if (!('FaceDetector' in window)) {
+  FaceDetector = function() {
+    console.log('Fake Face Detector used...');
+    return {
+      detect: async function() { return [] }
+    }
+  }
+}
+const faceDetector = new FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
+
+let faces = [];
+
+let recorder;
+let chunks = [];
+
+let isDetectingFaces = false;
+
+let easterEgg = false;
+let showFace = false;
+let context = undefined;
+let ratio = 0;
+
+async function getUserMedia() {
+  // Grab camera stream.
+  const constraints = {
+     video: {
+       facingMode: 'user',
+       frameRate: 60,
+       width:  640,
+       height: 480,
+     }
+  };
+  video.srcObject = await navigator.mediaDevices.getUserMedia(constraints);
+  await video.play();
+
+  canvas.height = window.innerHeight;
+  canvas.width = window.innerWidth;
+  // HACK: Face Detector doesn't accept canvas whose width is odd.
+  if (canvas.width % 2 == 1) {
+    canvas.width += 1;
+  }
+
+  setTimeout(_ => { faces = []; }, 500);
+
+  context = canvas.getContext('2d');
+  ratio = Math.max(canvas.width / video.videoWidth, canvas.height / video.videoHeight);
+
+  draw();
+}
+
+let stateFaceDetect = 0; //>0 means face detect <0 means face was not detect (if stateFaceDetect is below 10 => we really don't have face to draw)
+
+async function draw() {
+  requestAnimationFrame(draw);
+
+  // Draw video frame.
+  context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight,
+      (canvas.width - video.videoWidth * ratio) / 2, 0,
+      video.videoWidth * ratio, video.videoHeight * ratio);
+
+  if (!isDetectingFaces) {
+    // Detect faces.
+    //console.count('Detecting faces');
+    isDetectingFaces = true;
+    faceDetector.detect(canvas).then((facesArray => {
+      faces = facesArray;
+      isDetectingFaces = false;
+    }));
+  }
+  // Draw mustache and hat on previously detected face.
+  if (faces.length) {
+    const face = faces[0].boundingBox;
+    if (showFace) {
+      context.beginPath();
+      context.rect(face.x, face.y, face.width, face.height);
+      context.lineWidth = 4;
+      context.strokeStyle = 'deeppink';
+      context.stroke();
+    }
+    if (easterEgg) {
+      context.drawImage(sunglasses,
+          face.left,
+          face.top + face.height / 2 - sunglasses.height * face.width / sunglasses.width / 2,
+          face.width,
+          sunglasses.height * face.width / sunglasses.width);
+    } else {
+      context.drawImage(hat,
+          face.left,
+          face.bottom - face.height * 3 / 4 - hat.height * face.width / hat.width,
+          face.width,
+          hat.height * face.width / hat.width);
+      context.drawImage(mustache,
+          face.left + face.width / 4,
+          face.top + face.height * 3 / 4,
+          face.width / 2,
+          mustache.height * face.width / 2 / mustache.width);
+    }
+  }
+
+
+}
+
+function startRecording() {
+  console.time('recording');
+  preview.classList.remove('visible');
+  shareButton.removeAttribute('data-url');
+
+  const stream = canvas.captureStream();
+  //recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=h264', bitsPerSecond: 5000000 });
+  recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=h264' });
+  recorder.start(10); // collect 10ms of data
+  recorder.addEventListener('dataavailable', event => { chunks.push(event.data);console.log(event.data) });
+  recorder.addEventListener('error', event => { log.textContent = event.target.error });
+  recorder.addEventListener('stop', async event => {
+    const blob = new Blob(chunks, { type: 'video/webm' });
+
+    previewVideo.src = URL.createObjectURL(blob);
+    await previewVideo.play();
+    URL.revokeObjectURL(previewVideo.src);
+
+    if (previewVideo.duration > 1) {
+      preview.classList.add('visible');
+      uploadVideo(blob);
+    }
+    chunks = [];
+  });
+}
+
+async function stopRecording() {
+  if (!recorder || recorder.state == 'inactive') {
+    return;
+  }
+  console.timeEnd('recording');
+  recorder.stop();
+
+  // HACK to be able to play preview video later!
+  previewVideo.play();
+}
+
+function toggleRecording() {
+  const isRecording = document.body.classList.toggle('recording');
+
+  if (isRecording) {
+    startRecording();
+  } else {
+    stopRecording();
+  }
+}
+
+async function uploadVideo(blob) {
+  const url = new URL('https://www.googleapis.com/upload/storage/v1/b/pwa-mustache/o');
+  url.searchParams.append('uploadType', 'media');
+  url.searchParams.append('name', new Date().toISOString() + '.webm');
+
+  // Upload video to Google Cloud Storage.
+  const response = await fetch(url, {
+    method: 'POST',
+    body: blob,
+    headers: new Headers({
+      'Content-Type': 'video/webm',
+      'Content-Length': blob.length
+    })
+  });
+  const data = await response.json();
+  shareButton.dataset.url = `https://storage.googleapis.com/${data.bucket}/${data.name}`;
+}
+
+shareButton.addEventListener('click', event => {
+  const videoUrl = event.target.dataset.url;
+
+  if ('share' in navigator) {
+    navigator.share({
+      title: 'Mustache',
+      text: 'Check out my new style!',
+      url: videoUrl
+    })
+    .catch(error => {
+      // HACK!
+      if (error.message == 'WebShare is disabled.') {
+        window.open(videoUrl, '_blank');
+      }
+    });
+  } else {
+    window.open(videoUrl, '_blank');
+  }
+});
+
+previewVideo.addEventListener('click', event => {
+  preview.classList.remove('visible');
+  shareButton.removeAttribute('data-url');
+});
+
+canvas.addEventListener('click', event => {
+  showFace = !showFace;
+});
+
+switchCameraButton.addEventListener('click', async event => {
+  easterEgg = !easterEgg;
+});
+
+document.addEventListener('DOMContentLoaded', async event => {
+  sunglasses.src = './assets/sunglasses.png';
+  hat.src = './assets/hat.png';
+  mustache.src = './assets/mustache.png';
+
+  await getUserMedia();
+
+  recordButton.addEventListener('click', toggleRecording);
+});
+
+// Tries to register a service worker if available.
+//navigator.serviceWorker.register('mustache-sw.js');
+</script>
+
+
