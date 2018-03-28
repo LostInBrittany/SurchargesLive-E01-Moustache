@@ -23,7 +23,6 @@ export class DetectorComponent extends HTMLElement {
         this.isDetectingFaces = false;
 
         this.easterEgg = false;
-        this.showFace = false;
         this.context = undefined;
         this.ratio = 0;
     }
@@ -134,13 +133,6 @@ export class DetectorComponent extends HTMLElement {
         // Draw mustache and hat on previously detected face.
         if (this.faces.length) {
             const face = this.faces[0].boundingBox;
-            if (this.showFace) {
-                this.context.beginPath();
-                this.context.rect(face.x, face.y, face.width, face.height);
-                this.context.lineWidth = 4;
-                this.context.strokeStyle = 'deeppink';
-                this.context.stroke();
-            }
             if (this.easterEgg) {
                 this.context.drawImage(this.sunglasses,
                     face.left,
