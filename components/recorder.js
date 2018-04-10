@@ -94,24 +94,9 @@ export class RecorderComponent extends HTMLElement {
         .visible {
             transform: translateX(0) !important;
         }
-        #switchCameraButton {
-            position: absolute;
-            bottom: 36px;
-            text-align: center;
-            left: 24px;
-            width: 48px;
-            background: rgb(252, 194, 27);
-            line-height: 48px;
-            border-radius: 50%;
-            box-shadow: 0 0 2px 0 rgb(51, 51, 58);
-            height: 48px;
-            font-size: 24px;
-            cursor: default;
-        }
         </style>
         <div class="bottomBar"></div>
         <div id="recordButton"></div>
-        <div id="switchCameraButton">&#x1f60e;</div>
         <div id="preview">
             <div id="shareButton">SHARE</div>
             <video id="previewVideo" autoplay muted loop></video>
@@ -123,7 +108,6 @@ export class RecorderComponent extends HTMLElement {
     async connectedCallback() {
         render(this.render(), this.shadowRoot);
         this.recordButton = this.shadowRoot.querySelector('#recordButton');
-        this.switchCameraButton = this.shadowRoot.querySelector('#switchCameraButton');
         this.preview = this.shadowRoot.querySelector('#preview');
         this.shareButton = this.shadowRoot.querySelector('#shareButton');
         this.previewVideo = this.shadowRoot.querySelector('#previewVideo');
